@@ -1,0 +1,13 @@
+import { sql } from 'drizzle-orm';
+import { sqliteTable, text, integer, primaryKey, index, uniqueIndex, check } from 'drizzle-orm/sqlite-core';
+export const users=sqliteTable('users',{
+ id:text('id').primaryKey(),username:text('username').notNull(),usernameKey:text('username_key').notNull().unique(),password:text('password').notNull(),salt:text('salt').notNull(),
+ created:integer('created').notNull(),balance:integer('balance').notNull().default(0),lifetime:integer('lifetime').notNull().default(0),total:integer('total').notNull().default(0),streak:integer('streak').notNull().default(0),best:integer('best').notNull().default(0),lastDay:text('last_day'),
+ button:text('button').notNull().default('classic'),avatar:text('avatar').notNull().default('default'),frame:text('frame').notNull().default('none'),bio:text('bio').notNull().default(''),
+},t=>[check('nonnegative_balance',sql`${t.balance} >= 0`)]);
+export const sessions=sqliteTable('sessions',{token:text('token').primaryKey(),userId:text('user_id').notNull().references(()=>users.id,{onDelete:'cascade'}),expires:integer('expires').notNull()},t=>[index('session_expiry').on(t.expires)]);
+export const clicks=sqliteTable('clicks',{userId:text('user_id').notNull().references(()=>users.id,{onDelete:'cascade'}),day:text('day').notNull(),at:integer('at').notNull()},t=>[primaryKey({columns:[t.userId,t.day]}),index('click_day').on(t.day)]);
+export const friends=sqliteTable('friends',{a:text('a').notNull().references(()=>users.id,{onDelete:'cascade'}),b:text('b').notNull().references(()=>users.id,{onDelete:'cascade'}),sender:text('sender').notNull(),status:text('status').notNull().default('pending'),created:integer('created').notNull()},t=>[primaryKey({columns:[t.a,t.b]})]);
+export const challenges=sqliteTable('challenges',{id:text('id').primaryKey(),a:text('a').notNull().references(()=>users.id,{onDelete:'cascade'}),b:text('b').notNull().references(()=>users.id,{onDelete:'cascade'}),sender:text('sender').notNull(),status:text('status').notNull().default('pending'),start:text('start'),winner:text('winner'),score:integer('score'),ended:text('ended'),created:integer('created').notNull()},t=>[uniqueIndex('one_open_duel').on(t.a,t.b).where(sql`${t.status} IN ('pending','active')`)]);
+export const purchases=sqliteTable('purchases',{userId:text('user_id').notNull().references(()=>users.id,{onDelete:'cascade'}),item:text('item').notNull(),price:integer('price').notNull(),at:integer('at').notNull()},t=>[primaryKey({columns:[t.userId,t.item]})]);
+export const rateLimits=sqliteTable('rate_limits',{key:text('key').primaryKey(),count:integer('count').notNull(),expires:integer('expires').notNull()});
